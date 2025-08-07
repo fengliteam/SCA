@@ -10,7 +10,7 @@
     <StartupObject></StartupObject>
     <ApplicationIcon>favicon (3).ico</ApplicationIcon>
     <AssemblyName>学生计算机管理软件</AssemblyName>
-    <FileVersion>1.2.1</FileVersion>
+    <FileVersion>1.0.7</FileVersion>
     <PackageReleaseNotes>请输入文本</PackageReleaseNotes>
     <Version></Version>
     <Copyright>星影</Copyright>
@@ -29,13 +29,14 @@
   </ItemGroup>
 
   <ItemGroup>
-    <None Include="A:\SCLTK-dev\SCLTK-dev\LICENSE">
+    <None Include="H:\VSC\sca\LICENSE">
       <Pack>True</Pack>
       <PackagePath>\</PackagePath>
     </None>
   </ItemGroup>
 
   <ItemGroup>
+    <PackageReference Include="Newtonsoft.Json" Version="13.0.3" />
     <PackageReference Include="System.Management" Version="9.0.8" />
     <PackageReference Include="System.ServiceProcess.ServiceController" Version="9.0.8" />
   </ItemGroup>
