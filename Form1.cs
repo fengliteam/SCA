@@ -904,9 +904,100 @@ namespace sca
         {
             var updateHandler = new UpdateButtonHandler(
                 this,
-                "https://raw.githubusercontent.com/username/repository/main/update.json");
+                "https://github.com/fengliteam/SCA/raw/refs/heads/dev/version.json");
 
             updateHandler.ExecuteUpdateCheck();
+        }
+
+
+
+        private System.Windows.Forms.Timer timer;
+        private bool isTopMostSet = false;
+
+        private System.Windows.Forms.Timer topMostTimer;
+        private bool isTopMostEnabled = false;
+        private DateTime lastSetTime = DateTime.MinValue;
+
+        private void checkBox1_CheckedChanged(object sender, EventArgs e)
+        {
+            isTopMostEnabled = checkBox1.Checked;
+
+            if (isTopMostEnabled)
+            {
+                // 立即设置
+                SetTopMost();
+
+                // 启动高频定时器
+                topMostTimer = new System.Windows.Forms.Timer();
+                topMostTimer.Interval = 50; // 50毫秒，非常频繁
+                topMostTimer.Tick += TopMostTimer_Tick;
+                topMostTimer.Start();
+            }
+            else
+            {
+                if (topMostTimer != null)
+                {
+                    topMostTimer.Stop();
+                    topMostTimer.Dispose();
+                    topMostTimer = null;
+                }
+                // 安全地在UI线程中设置
+                if (this.InvokeRequired)
+                {
+                    this.Invoke(new Action(() => this.TopMost = false));
+                }
+                else
+                {
+                    this.TopMost = false;
+                }
+            }
+        }
+
+        private void TopMostTimer_Tick(object sender, EventArgs e)
+        {
+            if (isTopMostEnabled)
+            {
+                // 避免过于频繁的设置
+                if ((DateTime.Now - lastSetTime).TotalMilliseconds > 100)
+                {
+                    SetTopMost();
+                }
+            }
+        }
+
+        private void SetTopMost()
+        {
+            try
+            {
+                // 安全地在UI线程中设置
+                if (this.InvokeRequired)
+                {
+                    this.Invoke(new Action(SetTopMost));
+                    return;
+                }
+
+                // 一次性设置多个参数确保效果
+                SetWindowPos(this.Handle, new IntPtr(-1), 0, 0, 0, 0, 0x0002 | 0x0001 | 0x0010);
+                this.TopMost = true;
+                SetForegroundWindow(this.Handle);
+                lastSetTime = DateTime.Now;
+            }
+            catch
+            {
+                // 忽略异常
+            }
+        }
+
+        // Windows API声明
+        [DllImport("user32.dll")]
+        public static extern bool SetWindowPos(IntPtr hWnd, IntPtr hWndInsertAfter, int X, int Y, int cx, int cy, uint uFlags);
+
+        [DllImport("user32.dll")]
+        public static extern bool SetForegroundWindow(IntPtr hWnd);
+
+        private void label1_Click(object sender, EventArgs e)
+        {
+            MessageBox.Show("点击神马呢？");
         }
     }
 }
