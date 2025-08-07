@@ -146,6 +146,7 @@
             Controls.Add(尝试破解);
             DoubleBuffered = true;
             FormBorderStyle = FormBorderStyle.FixedSingle;
+            HelpButton = true;
             Icon = (Icon)resources.GetObject("$this.Icon");
             ImeMode = ImeMode.Off;
             MaximizeBox = false;
