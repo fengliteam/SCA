@@ -11,14 +11,14 @@
         /// Clean up any resources being used.
         /// </summary>
         /// <param name="disposing">true if managed resources should be disposed; otherwise, false.</param>
-        protected override void Dispose(bool disposing)
-        {
-            if (disposing && (components != null))
-            {
-                components.Dispose();
-            }
-            base.Dispose(disposing);
-        }
+        //protected override void Dispose(bool disposing)
+        //{
+        //    if (disposing && (components != null))
+        //    {
+        //        components.Dispose();
+        //    }
+        //    base.Dispose(disposing);
+        //}
 
         #region Windows Form Designer generated code
 
@@ -135,9 +135,9 @@
             // 
             // button8
             // 
-            button8.Location = new Point(421, 12);
+            button8.Location = new Point(266, 379);
             button8.Name = "button8";
-            button8.Size = new Size(75, 23);
+            button8.Size = new Size(112, 31);
             button8.TabIndex = 10;
             button8.Text = "检查更新";
             button8.UseVisualStyleBackColor = true;
@@ -147,7 +147,7 @@
             // 
             checkBox1.AutoSize = true;
             checkBox1.Font = new Font("Microsoft YaHei UI", 15F);
-            checkBox1.Location = new Point(203, 379);
+            checkBox1.Location = new Point(96, 379);
             checkBox1.Name = "checkBox1";
             checkBox1.Size = new Size(151, 31);
             checkBox1.TabIndex = 11;

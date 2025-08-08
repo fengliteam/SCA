@@ -2,12 +2,12 @@
 using System.Diagnostics;
 using System.Runtime.InteropServices;
 using System.Security.Principal;
+using System.Buffers;
 
 namespace sca
 {
     public partial class Main : Form
     {
-        // --- 原有代码常量和变量 ---
         private static readonly string[] ProcessesToKill = {
             "jfglzs", "przs", "zmserv", "vprtt", "oporn",
             "StudentMain", "DispcapHelper", "VRCwPlayer",
@@ -38,42 +38,43 @@ namespace sca
             "taskkill", "ntsd", "sc", "net", "reg", "cmd", "taskmgr",
             "perfmon", "regedit", "mmc", "dism", "sfc"
         };
+
         [DllImport("kernel32.dll", SetLastError = true)]
         [return: MarshalAs(UnmanagedType.Bool)]
         private static extern bool TerminateProcess(IntPtr hProcess, uint uExitCode);
+
         [DllImport("kernel32.dll")]
         private static extern IntPtr OpenProcess(uint processAccess, bool bInheritHandle, int processId);
+
         [DllImport("kernel32.dll", SetLastError = true)]
         [return: MarshalAs(UnmanagedType.Bool)]
         private static extern bool CloseHandle(IntPtr hObject);
+
         private const uint PROCESS_TERMINATE = 0x0001;
 
-        // --- 新增安全相关代码 ---
-        // 定义一组关键系统进程，这些进程不应被终止
-        private static readonly HashSet<string> CriticalSystemProcesses = new HashSet<string>(StringComparer.OrdinalIgnoreCase)
+        private static readonly HashSet<string> CriticalSystemProcesses = new(StringComparer.OrdinalIgnoreCase)
         {
             "csrss", "wininit", "winlogon", "lsass", "lsm", "services", "svchost",
             "smss", "dwm", "explorer", "taskeng", "taskhost", "taskhostw",
             "runtimebroker", "fontdrvhost", "conhost", "audiodg", "wlanext",
             "dasHost", "WUDFHost", "sihost", "dllhost", "taskkill", "sc", "net",
             "reg", "cmd", "schtasks", "wscript", "cscript", "powershell", "wmiprvse"
-            // 可以根据需要添加更多
         };
 
-        // 定义一组关键系统服务，这些服务不应被禁用
-        private static readonly HashSet<string> CriticalSystemServices = new HashSet<string>(StringComparer.OrdinalIgnoreCase)
+        private static readonly HashSet<string> CriticalSystemServices = new(StringComparer.OrdinalIgnoreCase)
         {
             "RpcSs", "DcomLaunch", "LSM", "Winmgmt", "EventLog", "Themes",
             "AudioSrv", "FontCache", "Schedule", "Winmgmt", "PlugPlay"
-            // 可以根据需要添加更多
         };
 
-        // 定义一组关键系统文件夹，这些路径下的程序不应被阻止
-        private static readonly string[] CriticalSystemPaths = {
-            Environment.GetFolderPath(Environment.SpecialFolder.System),
-            Environment.GetFolderPath(Environment.SpecialFolder.SystemX86),
-            Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.Windows), "SysWOW64")
-        };
+        private static readonly string SystemPath = Environment.GetFolderPath(Environment.SpecialFolder.System);
+        private static readonly string SystemX86Path = Environment.GetFolderPath(Environment.SpecialFolder.SystemX86);
+        private static readonly string SysWOW64Path = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.Windows), "SysWOW64");
+        private static readonly string[] CriticalSystemPathsArray = { SystemPath, SystemX86Path, SysWOW64Path };
+
+        private System.Windows.Forms.Timer topMostTimer;
+        private bool isTopMostEnabled = false;
+        private DateTime lastSetTime = DateTime.MinValue;
 
         public Main()
         {
@@ -94,7 +95,7 @@ namespace sca
             尝试破解.Text = "正在破解...";
             try
             {
-                await Task.Run(KillpRepeated);
+                await KillpRepeatedAsync();
                 尝试破解.Text = "破解成功！";
                 await Task.Delay(800);
             }
@@ -106,6 +107,7 @@ namespace sca
             finally
             {
                 尝试破解.Enabled = true;
+                尝试破解.Text = originalText;
             }
         }
 
@@ -158,7 +160,7 @@ namespace sca
             {
                 using (WindowsIdentity identity = WindowsIdentity.GetCurrent())
                 {
-                    WindowsPrincipal principal = new WindowsPrincipal(identity);
+                    WindowsPrincipal principal = new(identity);
                     bool isAdmin = principal.IsInRole(WindowsBuiltInRole.Administrator);
                     lock (_isAdminLock) { _isAdminCached = isAdmin; }
                     return isAdmin;
@@ -175,7 +177,7 @@ namespace sca
         {
             try
             {
-                ProcessStartInfo startInfo = new ProcessStartInfo
+                ProcessStartInfo startInfo = new()
                 {
                     UseShellExecute = true,
                     WorkingDirectory = Environment.CurrentDirectory,
@@ -193,72 +195,63 @@ namespace sca
             }
         }
 
-        public static void KillpRepeated()
+        public static async Task KillpRepeatedAsync()
         {
             for (int i = 0; i < KillIterations; i++)
             {
-                Killp();
-                if (i < KillIterations - 1) Thread.Sleep(IterationDelayMs);
+                await KillpAsync();
+                if (i < KillIterations - 1)
+                    await Task.Delay(IterationDelayMs);
             }
         }
 
-        public static void Killp()
+        public static async Task KillpAsync()
         {
-            KillProcesses();
-            DisableServices();
+            await Task.WhenAll(
+                Task.Run(KillProcesses),
+                Task.Run(DisableServices)
+            );
         }
 
-        // --- 修改后的 KillProcesses 方法 ---
         private static void KillProcesses()
         {
-            // 1. 先获取所有进程的列表和签名信息（可选优化，此处简化）
-            //    为了性能，我们只在需要时检查签名。
-
-            Span<bool> needsKilling = stackalloc bool[ProcessesToKill.Length];
-            for (int i = 0; i < ProcessesToKill.Length; i++)
+            Process[] allProcessesSnapshot = null;
+            try
             {
-                needsKilling[i] = true;
-            }
-            int remainingToKill = ProcessesToKill.Length;
+                allProcessesSnapshot = Process.GetProcesses();
+                Span<bool> needsKilling = stackalloc bool[ProcessesToKill.Length];
+                needsKilling.Fill(true);
+                int remainingToKill = ProcessesToKill.Length;
 
-            for (int iteration = 0; iteration < 2 && remainingToKill > 0; iteration++)
-            {
-                for (int i = ProcessesToKill.Length - 1; i >= 0; i--)
+                for (int iteration = 0; iteration < 2 && remainingToKill > 0; iteration++)
                 {
-                    if (!needsKilling[i]) continue;
-                    string processName = ProcessesToKill[i];
-
-                    Process[] processes = null;
-                    try
+                    for (int i = ProcessesToKill.Length - 1; i >= 0; i--)
                     {
-                        processes = Process.GetProcessesByName(processName);
-                        if (processes.Length > 0)
+                        if (!needsKilling[i]) continue;
+                        string processNameToKill = ProcessesToKill[i];
+                        bool allKilledThisName = true;
+
+                        foreach (Process p in allProcessesSnapshot)
                         {
-                            bool allKilled = true;
-                            foreach (Process p in processes)
+                            if (string.Equals(p.ProcessName, processNameToKill, StringComparison.OrdinalIgnoreCase))
                             {
                                 if (p != null && !p.HasExited)
                                 {
                                     try
                                     {
-                                        // --- 安全检查 1: 检查是否为关键系统进程 ---
                                         if (CriticalSystemProcesses.Contains(p.ProcessName))
                                         {
-                                            // 跳过关键进程
-                                            allKilled = false;
+                                            allKilledThisName = false;
                                             continue;
                                         }
 
-                                        // --- 安全检查 2: 检查文件路径和签名 (简化版) ---
-                                        // 注意：完整的签名检查比较复杂且耗时，这里只做路径检查作为示例
                                         try
                                         {
                                             string fullPath = p.MainModule?.FileName;
                                             if (!string.IsNullOrEmpty(fullPath))
                                             {
-                                                // 检查是否在系统关键目录
                                                 bool isInCriticalPath = false;
-                                                foreach (var criticalPath in CriticalSystemPaths)
+                                                foreach (var criticalPath in CriticalSystemPathsArray)
                                                 {
                                                     if (fullPath.StartsWith(criticalPath, StringComparison.OrdinalIgnoreCase))
                                                     {
@@ -268,114 +261,87 @@ namespace sca
                                                 }
                                                 if (isInCriticalPath)
                                                 {
-                                                    // 跳过位于关键系统路径的进程
-                                                    allKilled = false;
+                                                    allKilledThisName = false;
                                                     continue;
                                                 }
                                             }
                                         }
                                         catch
                                         {
-                                            // 获取主模块信息失败，可能没有权限，谨慎处理
-                                            // 可以选择跳过或记录日志
                                         }
 
-                                        // 如果通过了安全检查，则尝试终止
                                         IntPtr hProcess = OpenProcess(PROCESS_TERMINATE, false, p.Id);
                                         if (hProcess != IntPtr.Zero)
                                         {
                                             if (!TerminateProcess(hProcess, 0))
                                             {
-                                                allKilled = false;
-                                                p.Kill(); // Fallback
+                                                allKilledThisName = false;
+                                                try { p.Kill(); } catch { }
                                             }
                                             CloseHandle(hProcess);
                                         }
                                         else
                                         {
-                                            allKilled = false;
-                                            p.Kill(); // Fallback
+                                            allKilledThisName = false;
+                                            try { p.Kill(); } catch { }
                                         }
                                     }
                                     catch
                                     {
-                                        // 终止失败
-                                        allKilled = false;
-                                    }
-                                    finally
-                                    {
-                                        p?.Dispose();
+                                        allKilledThisName = false;
                                     }
                                 }
-                                else
-                                {
-                                    p?.Dispose();
-                                }
-                            }
-                            if (allKilled)
-                            {
-                                needsKilling[i] = false;
-                                remainingToKill--;
                             }
                         }
-                        else
+
+                        if (allKilledThisName)
                         {
                             needsKilling[i] = false;
                             remainingToKill--;
                         }
                     }
-                    catch
+
+                    if (remainingToKill > 0 && iteration < 1)
                     {
-                        needsKilling[i] = false;
-                        remainingToKill--;
-                    }
-                    finally
-                    {
-                        if (processes != null)
-                        {
-                            foreach (Process p in processes)
-                            {
-                                p?.Dispose();
-                            }
-                        }
+                        Thread.Sleep(IterationDelayMs / 3);
                     }
                 }
-                if (remainingToKill > 0 && iteration < 1)
+            }
+            finally
+            {
+                if (allProcessesSnapshot != null)
                 {
-                    Thread.Sleep(IterationDelayMs / 3);
+                    foreach (Process p in allProcessesSnapshot)
+                    {
+                        p?.Dispose();
+                    }
                 }
             }
         }
 
-        // --- 修改后的 DisableServices 方法 ---
         private static void DisableServices()
         {
             foreach (string serviceName in ServicesToDisable)
             {
                 try
                 {
-                    // --- 安全检查: 检查是否为关键系统服务 ---
                     if (CriticalSystemServices.Contains(serviceName))
                     {
-                        // 跳过关键服务
                         continue;
                     }
 
-                    // 使用更安全、更明确的命令调用方式，避免 && 等连接符
-                    // 停止服务
-                    using (Process stopProcess = new Process())
+                    using (Process stopProcess = new())
                     {
-                        stopProcess.StartInfo.FileName = "sc.exe"; // 直接调用 sc.exe
-                        stopProcess.StartInfo.Arguments = $"stop \"{serviceName}\""; // 参数用引号包裹
+                        stopProcess.StartInfo.FileName = "sc.exe";
+                        stopProcess.StartInfo.Arguments = $"stop \"{serviceName}\"";
                         stopProcess.StartInfo.UseShellExecute = false;
                         stopProcess.StartInfo.CreateNoWindow = true;
                         stopProcess.StartInfo.WindowStyle = ProcessWindowStyle.Hidden;
                         stopProcess.Start();
-                        stopProcess.WaitForExit(ServiceDisableTimeoutMs / 2); // 分配一半时间
+                        stopProcess.WaitForExit(ServiceDisableTimeoutMs / 2);
                     }
 
-                    // 禁用服务
-                    using (Process configProcess = new Process())
+                    using (Process configProcess = new())
                     {
                         configProcess.StartInfo.FileName = "sc.exe";
                         configProcess.StartInfo.Arguments = $"config \"{serviceName}\" start= disabled";
@@ -383,29 +349,21 @@ namespace sca
                         configProcess.StartInfo.CreateNoWindow = true;
                         configProcess.StartInfo.WindowStyle = ProcessWindowStyle.Hidden;
                         configProcess.Start();
-                        configProcess.WaitForExit(ServiceDisableTimeoutMs / 2); // 分配另一半时间
+                        configProcess.WaitForExit(ServiceDisableTimeoutMs / 2);
                     }
-
-                    // 注意：即使服务不存在或无法停止/禁用，这些命令通常也会静默失败，
-                    // 因为我们重定向了输出并且没有检查 ExitCode。
-                    // 如果需要更精确的控制，可以检查 ExitCode。
                 }
                 catch
                 {
-                    // 忽略单个服务操作的异常
                 }
             }
         }
-
-        // --- 其他原有方法 (button1_Click, button2_Click 等) ---
-        // ... (保持不变)
 
         private async void button1_Click(object sender, EventArgs e)
         {
             if (!await EnsureAdminAndConsentAsync()) return;
             try
             {
-                using (Process process = new Process())
+                using (Process process = new())
                 {
                     process.StartInfo.FileName = "powershell.exe";
                     process.StartInfo.Arguments = "-Command \"Stop-Process -Name explorer -Force; Start-Process explorer\"";
@@ -500,7 +458,7 @@ namespace sca
                 return;
             try
             {
-                using (Process process = new Process())
+                using (Process process = new())
                 {
                     process.StartInfo.FileName = "reg.exe";
                     process.StartInfo.Arguments = "add \"HKLM\\SYSTEM\\CurrentControlSet\\Services\\USBSTOR\" /f /t reg_dword /v Start /d 3";
@@ -522,7 +480,7 @@ namespace sca
                 return;
             try
             {
-                using (Process p1 = new Process())
+                using (Process p1 = new())
                 {
                     p1.StartInfo.FileName = "reg.exe";
                     p1.StartInfo.Arguments = @"delete ""HKLM\SOFTWARE\Policies\Google\Chrome"" /f";
@@ -531,7 +489,7 @@ namespace sca
                     p1.Start();
                     p1.WaitForExit();
                 }
-                using (Process p2 = new Process())
+                using (Process p2 = new())
                 {
                     p2.StartInfo.FileName = "reg.exe";
                     p2.StartInfo.Arguments = @"delete ""HKLM\SOFTWARE\Policies\Microsoft\Edge"" /f";
@@ -584,21 +542,17 @@ namespace sca
                 }
                 appName = appName.Replace(".exe", "", StringComparison.OrdinalIgnoreCase);
 
-                // --- 新增安全检查: 阻止关键系统进程 ---
                 if (CriticalSystemProcesses.Contains(appName))
                 {
                     MessageBox.Show($"无法阻止关键系统进程 '{appName}'。", "操作被拒绝", MessageBoxButtons.OK, MessageBoxIcon.Stop);
                     return;
                 }
-                // --- 新增安全检查: 阻止关键系统路径下的程序 ---
+
                 try
                 {
-                    // 尝试获取程序路径（需要更复杂的逻辑，这里简化）
-                    // 一个简单的方法是检查常见系统路径是否包含该名称
                     bool isInCriticalPath = false;
-                    foreach (var criticalPath in CriticalSystemPaths)
+                    foreach (var criticalPath in CriticalSystemPathsArray)
                     {
-                        // 这里只是一个非常基础的检查，实际应用中可能需要更精确的方法（如搜索PATH）
                         if (File.Exists(Path.Combine(criticalPath, appName + ".exe")))
                         {
                             isInCriticalPath = true;
@@ -613,7 +567,6 @@ namespace sca
                 }
                 catch
                 {
-                    // 忽略检查失败
                 }
 
                 DialogResult result = MessageBox.Show(
@@ -623,6 +576,7 @@ namespace sca
                     MessageBoxIcon.Question);
                 if (result == DialogResult.No)
                     return;
+
                 using (var key = Registry.LocalMachine.CreateSubKey(
                     $@"SOFTWARE\Microsoft\Windows NT\CurrentVersion\Image File Execution Options\{appName}.exe", writable: true))
                 {
@@ -645,31 +599,47 @@ namespace sca
 
         private string SelectRunningProcess()
         {
+            Process[] allProcesses = null;
             try
             {
-                Process[] allProcesses = Process.GetProcesses();
-                List<string> processNames = new List<string>(allProcesses.Length / 4);
-                HashSet<string> uniqueNames = new HashSet<string>();
+                allProcesses = Process.GetProcesses();
+                var uniqueNamesSet = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+                var nameList = new List<string>(Math.Min(allProcesses.Length, 50));
+
                 foreach (Process p in allProcesses)
                 {
-                    if (!string.IsNullOrEmpty(p.ProcessName) && p.MainWindowHandle != IntPtr.Zero)
+                    try
                     {
-                        if (uniqueNames.Add(p.ProcessName))
+                        if (!string.IsNullOrEmpty(p.ProcessName) && p.MainWindowHandle != IntPtr.Zero)
                         {
-                            processNames.Add(p.ProcessName);
+                            if (uniqueNamesSet.Add(p.ProcessName))
+                            {
+                                nameList.Add(p.ProcessName);
+                            }
                         }
                     }
-                    p?.Dispose();
+                    finally
+                    {
+                        p?.Dispose();
+                    }
                 }
-                if (processNames.Count == 0)
+
+                if (nameList.Count == 0)
                 {
                     MessageBox.Show("没有找到正在运行的进程。", "提示", MessageBoxButtons.OK, MessageBoxIcon.Information);
                     return null;
                 }
-                processNames.Sort();
-                string listToShow = string.Join("\n", processNames.Take(15));
+
+                nameList.Sort();
+                int displayCount = Math.Min(nameList.Count, 15);
+                var sb = new System.Text.StringBuilder("请输入要阻止的进程名称，或从以下列表中选择：\n");
+                for (int i = 0; i < displayCount; i++)
+                {
+                    sb.AppendLine(nameList[i]);
+                }
+
                 string selectedProcess = Microsoft.VisualBasic.Interaction.InputBox(
-                    "请输入要阻止的进程名称，或从以下列表中选择：\n" + listToShow,
+                    sb.ToString(),
                     "选择进程",
                     "", -1, -1);
                 return selectedProcess;
@@ -679,6 +649,16 @@ namespace sca
                 MessageBox.Show($"获取进程列表失败：{ex.Message}", "错误",
                     MessageBoxButtons.OK, MessageBoxIcon.Error);
                 return null;
+            }
+            finally
+            {
+                if (allProcesses != null)
+                {
+                    foreach (Process p in allProcesses)
+                    {
+                        p?.Dispose();
+                    }
+                }
             }
         }
 
@@ -695,17 +675,21 @@ namespace sca
                         MessageBoxButtons.OK, MessageBoxIcon.Information);
                     return;
                 }
-                string message = $"找到 {blockedPrograms.Count} 个被阻止的程序：\n";
+
                 int displayCount = Math.Min(blockedPrograms.Count, 15);
+                var sbMessage = new System.Text.StringBuilder($"找到 {blockedPrograms.Count} 个被阻止的程序：\n");
                 for (int i = 0; i < displayCount; i++)
                 {
-                    message += $"• {blockedPrograms[i]}\n";
+                    sbMessage.AppendLine($"• {blockedPrograms[i]}");
                 }
                 if (blockedPrograms.Count > 15)
-                    message += $"\n... 还有 {blockedPrograms.Count - 15} 个程序";
-                message += "\n请选择操作：\n点击'是' - 解除所有阻止\n点击'否' - 选择性解除\n点击'取消' - 取消操作";
-                DialogResult result = MessageBox.Show(message, "扫描完成",
+                    sbMessage.AppendLine($"\n... 还有 {blockedPrograms.Count - 15} 个程序");
+
+                sbMessage.AppendLine("\n请选择操作：\n点击'是' - 解除所有阻止\n点击'否' - 选择性解除\n点击'取消' - 取消操作");
+
+                DialogResult result = MessageBox.Show(sbMessage.ToString(), "扫描完成",
                     MessageBoxButtons.YesNoCancel, MessageBoxIcon.Question);
+
                 switch (result)
                 {
                     case DialogResult.Yes:
@@ -744,11 +728,13 @@ namespace sca
                                 {
                                     if (subKey != null)
                                     {
-                                        var debuggerValue = subKey.GetValue("Debugger");
-                                        if (debuggerValue is string strVal && strVal.Equals("nul", StringComparison.OrdinalIgnoreCase))
+                                        if (subKey.GetValue("Debugger") is string strVal && strVal.Equals("nul", StringComparison.OrdinalIgnoreCase))
                                         {
-                                            string programName = subKeyName.EndsWith(".exe", StringComparison.OrdinalIgnoreCase) ?
-                                                subKeyName.Substring(0, subKeyName.Length - 4) : subKeyName;
+                                            string programName = subKeyName;
+                                            if (programName.EndsWith(".exe", StringComparison.OrdinalIgnoreCase))
+                                            {
+                                                programName = programName.Substring(0, programName.Length - 4);
+                                            }
                                             blockedPrograms.Add(programName);
                                         }
                                     }
@@ -770,7 +756,8 @@ namespace sca
             {
                 throw new Exception($"扫描注册表时出错：{ex.Message}");
             }
-            blockedPrograms.Sort();
+
+            blockedPrograms.Sort(StringComparer.OrdinalIgnoreCase);
             return blockedPrograms;
         }
 
@@ -809,37 +796,43 @@ namespace sca
         {
             try
             {
-                string programList = "";
                 int displayCount = Math.Min(blockedPrograms.Count, 15);
+                var sbList = new System.Text.StringBuilder("请输入要解除阻止的程序序号（多个序号用逗号分隔）：\n");
                 for (int i = 0; i < displayCount; i++)
                 {
-                    programList += $"{i + 1}. {blockedPrograms[i]}\n";
+                    sbList.AppendLine($"{i + 1}. {blockedPrograms[i]}");
                 }
+
                 string input = Microsoft.VisualBasic.Interaction.InputBox(
-                    "请输入要解除阻止的程序序号（多个序号用逗号分隔）：\n" + programList,
+                    sbList.ToString(),
                     "选择性解除",
                     "", -1, -1);
+
                 if (string.IsNullOrWhiteSpace(input))
                     return;
+
                 var selectedIndices = new List<int>();
-                string[] parts = input.Split(',');
+                string[] parts = input.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
                 foreach (string part in parts)
                 {
-                    if (int.TryParse(part.Trim(), out int index) && index > 0 && index <= blockedPrograms.Count)
+                    if (int.TryParse(part, out int index) && index > 0 && index <= blockedPrograms.Count)
                     {
                         selectedIndices.Add(index - 1);
                     }
                 }
+
                 if (selectedIndices.Count == 0)
                 {
                     MessageBox.Show("没有选择有效的程序。", "提示",
                         MessageBoxButtons.OK, MessageBoxIcon.Warning);
                     return;
                 }
+
                 string confirmMsg = $"确定要解除 {selectedIndices.Count} 个程序的阻止吗？";
                 DialogResult confirm = MessageBox.Show(confirmMsg, "确认解除", MessageBoxButtons.YesNo, MessageBoxIcon.Question);
                 if (confirm == DialogResult.No)
                     return;
+
                 int successCount = 0;
                 int failCount = 0;
                 foreach (int index in selectedIndices)
@@ -854,6 +847,7 @@ namespace sca
                         failCount++;
                     }
                 }
+
                 string resultMessage = $"成功解除 {successCount} 个程序的阻止。";
                 if (failCount > 0)
                     resultMessage += $"\n{failCount} 个程序解除失败。";
@@ -871,14 +865,14 @@ namespace sca
         {
             string fullProgramName = programName.EndsWith(".exe", StringComparison.OrdinalIgnoreCase) ? programName : $"{programName}.exe";
             string keyPath = $@"SOFTWARE\Microsoft\Windows NT\CurrentVersion\Image File Execution Options\{fullProgramName}";
+
             try
             {
                 using (var key = Registry.LocalMachine.OpenSubKey(keyPath, writable: true))
                 {
                     if (key != null)
                     {
-                        var debuggerValue = key.GetValue("Debugger");
-                        if (debuggerValue is string strVal && strVal.Equals("nul", StringComparison.OrdinalIgnoreCase))
+                        if (key.GetValue("Debugger") is string strVal && strVal.Equals("nul", StringComparison.OrdinalIgnoreCase))
                         {
                             key.DeleteValue("Debugger");
                         }
@@ -893,58 +887,36 @@ namespace sca
 
         private void button7_Click(object sender, EventArgs e)
         {
-            //消息提示框
             MessageBox.Show("学生电脑机房管理工具-SCA\n" +
                 "版本:1.0.8（Alpha）\n" +
-                "如果你觉得这个工具对你有帮助，欢迎在GitHub上给我一个Star⭐，这将极大地鼓励我继续开发更多有用的工具！\n\nGitHub仓库地址:https://github.com/fengliteam/SCA",
+                "如果你觉得这个工具对你有帮助，欢迎在GitHub上给我一个Star⭐，这将极大地鼓励我继续开发更多有用的工具！\n" +
+                "GitHub仓库地址:https://github.com/fengliteam/SCA",
                 "感谢支持！！！", MessageBoxButtons.OK, MessageBoxIcon.Information);
         }
 
         private void button8_Click(object sender, EventArgs e)
         {
-            var updateHandler = new UpdateButtonHandler(
-                this,
-                "https://github.com/fengliteam/SCA/raw/refs/heads/dev/version.json");
-
-            updateHandler.ExecuteUpdateCheck();
+            var updateHandler = new UpdateButtonHandler(this);
+            updateHandler.SelectUpdateChannel();
         }
-
-
-
-        private System.Windows.Forms.Timer timer;
-        private bool isTopMostSet = false;
-
-        private System.Windows.Forms.Timer topMostTimer;
-        private bool isTopMostEnabled = false;
-        private DateTime lastSetTime = DateTime.MinValue;
 
         private void checkBox1_CheckedChanged(object sender, EventArgs e)
         {
             isTopMostEnabled = checkBox1.Checked;
-
             if (isTopMostEnabled)
             {
-                // 立即设置
                 SetTopMost();
-
-                // 启动高频定时器
-                topMostTimer = new System.Windows.Forms.Timer();
-                topMostTimer.Interval = 50; // 50毫秒，非常频繁
+                topMostTimer ??= new System.Windows.Forms.Timer();
+                topMostTimer.Interval = 200;
                 topMostTimer.Tick += TopMostTimer_Tick;
                 topMostTimer.Start();
             }
             else
             {
-                if (topMostTimer != null)
-                {
-                    topMostTimer.Stop();
-                    topMostTimer.Dispose();
-                    topMostTimer = null;
-                }
-                // 安全地在UI线程中设置
+                topMostTimer?.Stop();
                 if (this.InvokeRequired)
                 {
-                    this.Invoke(new Action(() => this.TopMost = false));
+                    this.Invoke((MethodInvoker)delegate { this.TopMost = false; });
                 }
                 else
                 {
@@ -957,7 +929,6 @@ namespace sca
         {
             if (isTopMostEnabled)
             {
-                // 避免过于频繁的设置
                 if ((DateTime.Now - lastSetTime).TotalMilliseconds > 100)
                 {
                     SetTopMost();
@@ -969,14 +940,11 @@ namespace sca
         {
             try
             {
-                // 安全地在UI线程中设置
                 if (this.InvokeRequired)
                 {
-                    this.Invoke(new Action(SetTopMost));
+                    this.Invoke((MethodInvoker)SetTopMost);
                     return;
                 }
-
-                // 一次性设置多个参数确保效果
                 SetWindowPos(this.Handle, new IntPtr(-1), 0, 0, 0, 0, 0x0002 | 0x0001 | 0x0010);
                 this.TopMost = true;
                 SetForegroundWindow(this.Handle);
@@ -984,11 +952,9 @@ namespace sca
             }
             catch
             {
-                // 忽略异常
             }
         }
 
-        // Windows API声明
         [DllImport("user32.dll")]
         public static extern bool SetWindowPos(IntPtr hWnd, IntPtr hWndInsertAfter, int X, int Y, int cx, int cy, uint uFlags);
 
@@ -998,6 +964,19 @@ namespace sca
         private void label1_Click(object sender, EventArgs e)
         {
             MessageBox.Show("点击神马呢？");
+        }
+
+        protected override void Dispose(bool disposing)
+        {
+            if (disposing)
+            {
+                if (components != null)
+                {
+                    components.Dispose();
+                }
+                topMostTimer?.Dispose();
+            }
+            base.Dispose(disposing);
         }
     }
 }
