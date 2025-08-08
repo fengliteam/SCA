@@ -1,0 +1,50 @@
+name: SCA Dev Build (.NET 9 x64 Self-Contained R2R)
+
+on:
+  push:
+    branches: [ dev ]
+  pull_request:
+    branches: [ dev ]
+
+jobs:
+  build:
+    runs-on: windows-latest
+
+    env:
+      Solution_Name: SCA.sln
+      Project_Path: SCA/SCA.csproj
+      Configuration: Release
+      RuntimeIdentifier: win-x64
+      PublishDir: publish
+
+    steps:
+    - name: Checkout
+      uses: actions/checkout@v4
+      with:
+        fetch-depth: 0
+
+    - name: Setup .NET 9
+      uses: actions/setup-dotnet@v4
+      with:
+        dotnet-version: 9.0.x
+
+    - name: Restore
+      run: dotnet restore ${{ env.Solution_Name }}
+
+    - name: Build
+      run: dotnet build ${{ env.Solution_Name }} --configuration ${{ env.Configuration }} --no-restore
+
+    - name: Publish (Self-Contained, R2R)
+      run: >
+        dotnet publish ${{ env.Project_Path }}
+        --configuration ${{ env.Configuration }}
+        --runtime ${{ env.RuntimeIdentifier }}
+        --self-contained true
+        --p:PublishReadyToRun=true
+        --output ${{ env.PublishDir }}
+
+    - name: Upload Build Artifact
+      uses: actions/upload-artifact@v4
+      with:
+        name: SCA-win-x64-self-contained-r2r
+        path: ${{ env.PublishDir }}
