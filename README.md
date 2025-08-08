@@ -1,6 +1,6 @@
 # 学生电脑机房管理工具 - SCA (Student Computer Administration)
 
-**版本:** 1.0.7
+**版本:** 1.1.0
 
 ## 简介
 

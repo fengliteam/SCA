@@ -1,43 +1,40 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
-
   <PropertyGroup>
     <OutputType>WinExe</OutputType>
-    <TargetFramework>net8.0-windows8.0</TargetFramework>
+    <TargetFramework>net9.0-windows8.0</TargetFramework>
     <Nullable>enable</Nullable>
     <UseWindowsForms>true</UseWindowsForms>
     <ImplicitUsings>enable</ImplicitUsings>
     <SupportedOSPlatformVersion>7.0</SupportedOSPlatformVersion>
-    <StartupObject></StartupObject>
+    <StartupObject>
+    </StartupObject>
     <ApplicationIcon>favicon (3).ico</ApplicationIcon>
     <AssemblyName>学生计算机管理软件</AssemblyName>
-    <FileVersion>1.2.1</FileVersion>
+    <FileVersion>1.0.7</FileVersion>
     <PackageReleaseNotes>请输入文本</PackageReleaseNotes>
-    <Version></Version>
+    <Version>
+    </Version>
     <Copyright>星影</Copyright>
     <PackageProjectUrl>https://space.bilibili.com/1090378791</PackageProjectUrl>
     <NeutralLanguage>zh-CN</NeutralLanguage>
     <PackageLicenseFile>LICENSE</PackageLicenseFile>
     <PackageRequireLicenseAcceptance>True</PackageRequireLicenseAcceptance>
   </PropertyGroup>
-
   <ItemGroup>
     <None Remove="Form1.cs~RF1abb568.TMP" />
   </ItemGroup>
-
   <ItemGroup>
     <Content Include="favicon (3).ico" />
   </ItemGroup>
-
   <ItemGroup>
-    <None Include="A:\SCLTK-dev\SCLTK-dev\LICENSE">
+    <None Include="H:\VSC\sca\LICENSE">
       <Pack>True</Pack>
       <PackagePath>\</PackagePath>
     </None>
   </ItemGroup>
-
   <ItemGroup>
-    <PackageReference Include="System.Management" Version="9.0.8" />
-    <PackageReference Include="System.ServiceProcess.ServiceController" Version="9.0.8" />
+    <PackageReference Include="Newtonsoft.Json" />
+    <PackageReference Include="System.Management" />
+    <PackageReference Include="System.ServiceProcess.ServiceController" />
   </ItemGroup>
-
 </Project>

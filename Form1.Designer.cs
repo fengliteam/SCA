@@ -11,14 +11,14 @@
         /// Clean up any resources being used.
         /// </summary>
         /// <param name="disposing">true if managed resources should be disposed; otherwise, false.</param>
-        protected override void Dispose(bool disposing)
-        {
-            if (disposing && (components != null))
-            {
-                components.Dispose();
-            }
-            base.Dispose(disposing);
-        }
+        //protected override void Dispose(bool disposing)
+        //{
+        //    if (disposing && (components != null))
+        //    {
+        //        components.Dispose();
+        //    }
+        //    base.Dispose(disposing);
+        //}
 
         #region Windows Form Designer generated code
 
@@ -38,21 +38,24 @@
             button5 = new Button();
             button6 = new Button();
             button7 = new Button();
+            button8 = new Button();
+            checkBox1 = new CheckBox();
             SuspendLayout();
             // 
             // 尝试破解
             // 
-            尝试破解.Location = new Point(170, 131);
+            尝试破解.Font = new Font("Microsoft YaHei UI", 42F, FontStyle.Regular, GraphicsUnit.Point, 134);
+            尝试破解.Location = new Point(96, 127);
             尝试破解.Name = "尝试破解";
-            尝试破解.Size = new Size(188, 108);
+            尝试破解.Size = new Size(334, 137);
             尝试破解.TabIndex = 1;
-            尝试破解.Text = "尝试破解";
+            尝试破解.Text = "点击破解";
             尝试破解.UseVisualStyleBackColor = true;
             尝试破解.Click += 尝试破解_Click;
             // 
             // button1
             // 
-            button1.Location = new Point(12, 377);
+            button1.Location = new Point(12, 329);
             button1.Name = "button1";
             button1.Size = new Size(100, 23);
             button1.TabIndex = 2;
@@ -63,15 +66,16 @@
             // label1
             // 
             label1.AutoSize = true;
-            label1.Location = new Point(170, 316);
+            label1.Location = new Point(170, 359);
             label1.Name = "label1";
             label1.Size = new Size(188, 17);
             label1.TabIndex = 3;
             label1.Text = "以下为测试内容，稳定性无法保证";
+            label1.Click += label1_Click;
             // 
             // button2
             // 
-            button2.Location = new Point(118, 377);
+            button2.Location = new Point(129, 329);
             button2.Name = "button2";
             button2.Size = new Size(99, 23);
             button2.TabIndex = 4;
@@ -81,7 +85,7 @@
             // 
             // button3
             // 
-            button3.Location = new Point(223, 377);
+            button3.Location = new Point(238, 329);
             button3.Name = "button3";
             button3.Size = new Size(127, 23);
             button3.TabIndex = 5;
@@ -91,7 +95,7 @@
             // 
             // button4
             // 
-            button4.Location = new Point(356, 377);
+            button4.Location = new Point(371, 329);
             button4.Name = "button4";
             button4.Size = new Size(221, 23);
             button4.TabIndex = 6;
@@ -101,7 +105,7 @@
             // 
             // button5
             // 
-            button5.Location = new Point(12, 348);
+            button5.Location = new Point(12, 300);
             button5.Name = "button5";
             button5.Size = new Size(261, 23);
             button5.TabIndex = 7;
@@ -111,7 +115,7 @@
             // 
             // button6
             // 
-            button6.Location = new Point(279, 348);
+            button6.Location = new Point(294, 300);
             button6.Name = "button6";
             button6.Size = new Size(298, 23);
             button6.TabIndex = 8;
@@ -129,12 +133,36 @@
             button7.UseVisualStyleBackColor = true;
             button7.Click += button7_Click;
             // 
+            // button8
+            // 
+            button8.Location = new Point(266, 379);
+            button8.Name = "button8";
+            button8.Size = new Size(112, 31);
+            button8.TabIndex = 10;
+            button8.Text = "检查更新";
+            button8.UseVisualStyleBackColor = true;
+            button8.Click += button8_Click;
+            // 
+            // checkBox1
+            // 
+            checkBox1.AutoSize = true;
+            checkBox1.Font = new Font("Microsoft YaHei UI", 15F);
+            checkBox1.Location = new Point(96, 379);
+            checkBox1.Name = "checkBox1";
+            checkBox1.Size = new Size(151, 31);
+            checkBox1.TabIndex = 11;
+            checkBox1.Text = "保持程序置顶";
+            checkBox1.UseVisualStyleBackColor = true;
+            checkBox1.CheckedChanged += checkBox1_CheckedChanged;
+            // 
             // Main
             // 
             AutoScaleDimensions = new SizeF(7F, 17F);
             AutoScaleMode = AutoScaleMode.Font;
             AutoValidate = AutoValidate.EnablePreventFocusChange;
             ClientSize = new Size(589, 412);
+            Controls.Add(checkBox1);
+            Controls.Add(button8);
             Controls.Add(button7);
             Controls.Add(button6);
             Controls.Add(button5);
@@ -146,6 +174,7 @@
             Controls.Add(尝试破解);
             DoubleBuffered = true;
             FormBorderStyle = FormBorderStyle.FixedSingle;
+            HelpButton = true;
             Icon = (Icon)resources.GetObject("$this.Icon");
             ImeMode = ImeMode.Off;
             MaximizeBox = false;
@@ -165,5 +194,7 @@
         private System.Windows.Forms.Button button5;
         private System.Windows.Forms.Button button6;
         private Button button7;
+        private Button button8;
+        private CheckBox checkBox1;
     }
 }
