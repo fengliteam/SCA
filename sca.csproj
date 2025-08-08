@@ -1,57 +1,81 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
-  <PropertyGroup>
-    <OutputType>WinExe</OutputType>
-    <TargetFramework>net9.0-windows7.0</TargetFramework>
-    <Nullable>enable</Nullable>
-    <UseWindowsForms>true</UseWindowsForms>
-    <ImplicitUsings>enable</ImplicitUsings>
-    <SupportedOSPlatformVersion>7.0</SupportedOSPlatformVersion>
-    <StartupObject>
-    </StartupObject>
-    <ApplicationIcon>favicon (3).ico</ApplicationIcon>
-    <AssemblyName>学生计算机管理软件</AssemblyName>
-    <FileVersion>1.1.0</FileVersion>
-    <PackageReleaseNotes>请输入文本</PackageReleaseNotes>
-    <Version>
-    </Version>
-    <Copyright>星影</Copyright>
-    <PackageProjectUrl>https://space.bilibili.com/1090378791</PackageProjectUrl>
-    <NeutralLanguage>zh-CN</NeutralLanguage>
-    <PackageLicenseFile>LICENSE</PackageLicenseFile>
-    <PackageRequireLicenseAcceptance>True</PackageRequireLicenseAcceptance>
-    <AssemblyVersion>1.1.0</AssemblyVersion>
-    <EnforceCodeStyleInBuild>True</EnforceCodeStyleInBuild>
-    <IncludeSymbols>False</IncludeSymbols>
-    <SymbolPackageFormat>snupkg</SymbolPackageFormat>
-  </PropertyGroup>
-  <ItemGroup>
-    <None Remove="Form1.cs~RF1abb568.TMP" />
-  </ItemGroup>
-  <ItemGroup>
-    <Content Include="favicon (3).ico" />
-  </ItemGroup>
-  <ItemGroup>
-    <None Include="H:\VSC\sca\LICENSE">
-      <Pack>True</Pack>
-      <PackagePath>\</PackagePath>
-    </None>
-  </ItemGroup>
-  <ItemGroup>
-    <PackageReference Include="Newtonsoft.Json" />
-    <PackageReference Include="System.Management" />
-    <PackageReference Include="System.ServiceProcess.ServiceController" />
-  </ItemGroup>
-  <ItemGroup>
-    <Compile Update="Properties\Settings.Designer.cs">
-      <DesignTimeSharedInput>True</DesignTimeSharedInput>
-      <AutoGen>True</AutoGen>
-      <DependentUpon>Settings.settings</DependentUpon>
-    </Compile>
-  </ItemGroup>
-  <ItemGroup>
-    <None Update="Properties\Settings.settings">
-      <Generator>SettingsSingleFileGenerator</Generator>
-      <LastGenOutput>Settings.Designer.cs</LastGenOutput>
-    </None>
-  </ItemGroup>
+
+	<PropertyGroup>
+		<!-- 基本项目设置 -->
+		<OutputType>WinExe</OutputType>
+		<TargetFramework>net9.0-windows</TargetFramework>
+		<Nullable>enable</Nullable>
+		<UseWindowsForms>true</UseWindowsForms>
+		<ImplicitUsings>enable</ImplicitUsings>
+		<SupportedOSPlatformVersion>7.0</SupportedOSPlatformVersion>
+
+		<!-- 应用程序信息 -->
+		<ApplicationIcon>favicon (3).ico</ApplicationIcon>
+		<AssemblyName>学生计算机管理软件</AssemblyName>
+		<Copyright>星影</Copyright>
+		<NeutralLanguage>zh-CN</NeutralLanguage>
+
+		<!-- 版本信息 -->
+		<AssemblyVersion>1.1.0</AssemblyVersion>
+		<FileVersion>1.1.2</FileVersion>
+
+		<!-- 包和许可证信息 -->
+		<PackageProjectUrl>https://space.bilibili.com/1090378791</PackageProjectUrl>
+		<PackageLicenseFile>LICENSE</PackageLicenseFile>
+		<PackageRequireLicenseAcceptance>True</PackageRequireLicenseAcceptance>
+		<PackageReleaseNotes>请输入文本</PackageReleaseNotes>
+
+		<!-- 发布和构建选项 -->
+		<SelfContained>true</SelfContained>
+		<PublishReadyToRun>true</PublishReadyToRun>
+		<PublishReadyToRunShowWarnings>true</PublishReadyToRunShowWarnings>
+		<PublishSingleFile>true</PublishSingleFile>
+		<BuiltInComInteropSupport>true</BuiltInComInteropSupport>
+
+		<!-- 新增：高 DPI 支持 -->
+		<ApplicationHighDpiMode>SystemAware</ApplicationHighDpiMode>
+		<ForceDesignerDpiUnaware>true</ForceDesignerDpiUnaware>
+		<EnforceCodeStyleInBuild>True</EnforceCodeStyleInBuild>
+		<IncludeSymbols>False</IncludeSymbols>
+		<SymbolPackageFormat>snupkg</SymbolPackageFormat>
+
+		<!-- 启用较新的语言特性 -->
+		<Features>strict</Features>
+	</PropertyGroup>
+
+	<ItemGroup>
+		<None Remove="Form1.cs~RF1abb568.TMP" />
+	</ItemGroup>
+
+	<ItemGroup>
+		<Content Include="favicon (3).ico" />
+	</ItemGroup>
+
+	<ItemGroup>
+		<None Include="H:\VSC\sca\LICENSE">
+			<Pack>True</Pack>
+			<PackagePath>\</PackagePath>
+		</None>
+	</ItemGroup>
+
+	<ItemGroup>
+		<PackageReference Include="Newtonsoft.Json" />
+		<PackageReference Include="System.Management" />
+		<PackageReference Include="System.ServiceProcess.ServiceController" />
+	</ItemGroup>
+
+	<ItemGroup>
+		<Compile Update="Properties\Settings.Designer.cs">
+			<DesignTimeSharedInput>True</DesignTimeSharedInput>
+			<AutoGen>True</AutoGen>
+			<DependentUpon>Settings.settings</DependentUpon>
+		</Compile>
+	</ItemGroup>
+
+	<ItemGroup>
+		<None Update="Properties\Settings.settings">
+			<Generator>SettingsSingleFileGenerator</Generator>
+			<LastGenOutput>Settings.Designer.cs</LastGenOutput>
+		</None>
+	</ItemGroup>
 </Project>

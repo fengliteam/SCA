@@ -1,12 +1,11 @@
 <Project>
   <PropertyGroup>
     <ManagePackageVersionsCentrally>true</ManagePackageVersionsCentrally>
-    <CentralPackageTransitivePinningEnabled>true</CentralPackageTransitivePinningEnabled>
-    <NoWarn>$(NoWarn);NU1507</NoWarn>
   </PropertyGroup>
   <ItemGroup>
-    <PackageVersion Include="Newtonsoft.Json" Version="13.0.3" />
     <PackageVersion Include="System.Management" Version="9.0.8" />
-    <PackageVersion Include="System.ServiceProcess.ServiceController" Version="9.0.8" />
+    <PackageVersion Include="System.ServiceProcess.ServiceController" Version="6.0.0" />
+    <!-- 如果需要 Newtonsoft.Json -->
+    <PackageVersion Include="Newtonsoft.Json" Version="13.0.3" />
   </ItemGroup>
 </Project>
