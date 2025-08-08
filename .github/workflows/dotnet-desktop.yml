@@ -22,8 +22,6 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
 
       - name: Setup .NET 9
         uses: actions/setup-dotnet@v4
@@ -34,20 +32,25 @@ jobs:
         run: dotnet restore ${{ env.Solution_Name }}
 
       - name: Build
-        run: dotnet build ${{ env.Solution_Name }} --configuration ${{ env.Configuration }} --no-restore -p:Version=${{ env.Version }}
+        run: |
+          dotnet build ${{ env.Solution_Name }} `
+            --configuration ${{ env.Configuration }} `
+            --no-restore `
+            -p:Version=${{ env.Version }} `
+            -p:RuntimeIdentifier=""      # 强制清空 RID，避免 NETSDK1134
 
       - name: Publish (Self-Contained, R2R)
         run: |
-          dotnet publish ${{ env.Project_Path }} ^
-            --configuration ${{ env.Configuration }} ^
-            --runtime ${{ env.RuntimeIdentifier }} ^
-            --self-contained true ^
-            -p:PublishReadyToRun=true ^
-            -p:Version=${{ env.Version }} ^
+          dotnet publish ${{ env.Project_Path }} `
+            --configuration ${{ env.Configuration }} `
+            --runtime ${{ env.RuntimeIdentifier }} `
+            --self-contained true `
+            -p:PublishReadyToRun=true `
+            -p:Version=${{ env.Version }} `
             --output ${{ env.PublishDir }}
 
       - name: Upload Build Artifact
         uses: actions/upload-artifact@v4
         with:
-          name: SCA-1.1.1-win-x64-self-contained-r2r
+          name: SCA-1.1.1-win-x64-r2r
           path: ${{ env.PublishDir }}
