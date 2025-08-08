@@ -888,7 +888,7 @@ namespace sca
         private void button7_Click(object sender, EventArgs e)
         {
             MessageBox.Show("学生电脑机房管理工具-SCA\n" +
-                "版本:1.0.8（Alpha）\n" +
+                "版本:1.1.0\n" +
                 "如果你觉得这个工具对你有帮助，欢迎在GitHub上给我一个Star⭐，这将极大地鼓励我继续开发更多有用的工具！\n" +
                 "GitHub仓库地址:https://github.com/fengliteam/SCA",
                 "感谢支持！！！", MessageBoxButtons.OK, MessageBoxIcon.Information);

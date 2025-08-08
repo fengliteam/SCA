@@ -87,7 +87,13 @@ public class UpdateButtonHandler
         }
         catch
         {
-            return "1.0.0";
+            return "1.8.0";
+            MessageBox.Show(
+                _parentForm,
+                "获取当前版本信息失败，使用默认版本号 1.8.0",
+                "错误",
+                MessageBoxButtons.OK,
+                MessageBoxIcon.Warning);
         }
     }
 
