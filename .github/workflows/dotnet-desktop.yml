@@ -31,14 +31,17 @@ jobs:
       - name: Restore
         run: dotnet restore ${{ env.Solution_Name }}
 
+      # build：关闭 SelfContained + 强制清空 RID
       - name: Build
         run: |
           dotnet build ${{ env.Solution_Name }} `
             --configuration ${{ env.Configuration }} `
             --no-restore `
             -p:Version=${{ env.Version }} `
-            -p:RuntimeIdentifier=""      # 强制清空 RID，避免 NETSDK1134
+            -p:SelfContained=false `
+            -p:RuntimeIdentifier=""
 
+      # publish：再显式打开 SelfContained 并给出 RID
       - name: Publish (Self-Contained, R2R)
         run: |
           dotnet publish ${{ env.Project_Path }} `
