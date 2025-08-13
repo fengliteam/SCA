@@ -12,14 +12,53 @@ jobs:
     runs-on: windows-latest
 
     env:
-      Solution_Name: SCA.sln
-      Project_Path: SCA/SCA.csproj
+
+      Solution_Name: sca.sln
+      Project_Path: sca.csproj
+
       Configuration: Release
       RuntimeIdentifier: win-x64
       PublishDir: publish
       Version: 1.1.1
 
     steps:
+
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup .NET 9
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 9.0.x
+
+      - name: Restore
+        run: dotnet restore ${{ env.Solution_Name }}
+
+      - name: Build
+        run: |
+          dotnet build ${{ env.Solution_Name }} `
+            --configuration ${{ env.Configuration }} `
+            --no-restore `
+            -p:Version=${{ env.Version }} `
+            -p:SelfContained=false `
+            -p:RuntimeIdentifier=""
+
+      - name: Publish (Self-Contained, R2R)
+        run: |
+          dotnet publish ${{ env.Project_Path }} `
+            --configuration ${{ env.Configuration }} `
+            --runtime ${{ env.RuntimeIdentifier }} `
+            --self-contained true `
+            -p:PublishReadyToRun=true `
+            -p:Version=${{ env.Version }} `
+            --output ${{ env.PublishDir }}
+
+      - name: Upload Build Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: SCA-1.1.1-win-x64-r2r
+          path: ${{ env.PublishDir }}
+
     - name: Checkout
       uses: actions/checkout@v4
       with:
@@ -51,3 +90,4 @@ jobs:
       with:
         name: SCA-1.1.1-win-x64-self-contained-r2r
         path: ${{ env.PublishDir }}
+
