@@ -28,12 +28,7 @@ SCA 是一个针对 Windows 系统设计的图形化工具，旨在帮助用户�
 ## 技术细节
 
 *   **语言:** C#
-*   **框架:** .NET 8.0
-*   **核心操作:**
-    *   进程管理: 使用 `Process.GetProcessesByName` 和 Win32 API (`OpenProcess`, `TerminateProcess`)。
-    *   服务管理: 调用外部命令 `sc.exe`。
-    *   注册表操作: 使用 `Microsoft.Win32.Registry` 类。
-    *   其他系统命令: 调用 `powershell.exe`, `reg.exe` 执行特定任务。
+*   **框架:** .NET 9.0
 
 ## 免责声明
 
